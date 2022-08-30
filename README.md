@@ -13,7 +13,7 @@ This is a hobby project and I don't earn any money from this. The assets used be
 </p>
 
 [Download the apk](https://github.com/Z34O/holokit/raw/main/builds/HoloKitv1.0.0.apk "Holokitv1.0.0") or modify it and build it yourself
-Note: The app will have no icon (mine does because I modified it)
+__Note:__ The app will have no icon (mine does because I modified it)
 
 ---
 
