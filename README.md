@@ -13,6 +13,7 @@ This is a hobby project and I don't earn any money from this. The assets used be
 </p>
 
 [Download the apk](https://github.com/Z34O/holokit/raw/main/builds/HoloKitv1.0.0.apk "Holokitv1.0.0") or modify it and build it yourself
+Note: The app will have no icon (mine does because I modified it)
 
 ---
 
@@ -36,5 +37,6 @@ $ cd holokit
 $ cordova platform add android
 $ cordova build
 ```
+If you want your app to have an icon drag the `./www/assets/ic_launcher.png` to `./platforms/android/app/src/main/res/mipmap-*` and rebuild the app
 
 __The Cordova output will show you where your build will be located.__
