@@ -1,5 +1,5 @@
 # holokit
-Android App that shows verview of streams of your favorite Hololivers. Built in vanilla JavaScript, and jQuery with Cordova
+Android App that shows overview of streams of your favorite Hololivers. Built in vanilla JavaScript, and jQuery with Cordova
 
 ### Overview
 I made this thing around September of 2021. The code is messy, but hey! _It works._
