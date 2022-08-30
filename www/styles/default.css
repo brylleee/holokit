@@ -1,0 +1,9 @@
+@font-face {
+    font-family: premier;
+    src: url("../assets/primer.ttf");
+}
+
+body {
+    font-family: premier;
+    height: 100%;
+}

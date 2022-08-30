@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html>
+    <head>
+
+        <!-- TODO Add translations to stream info options -->
+        <!-- Add functionality to bookmark (save to localstorage) -->
+        <!-- Notify streams -->
+        <!-- Terrible time system recent streams -->
+
+        <title>Holokit</title>
+        <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+        <!-- JQuery -->
+        <script src="lib/jquery3.6.0.css"></script>
+
+        <!-- Viewport -->
+        <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+
+        <!-- Holojazz -->
+        <script type="text/javascript" src="holojazz.js"></script>
+
+        <!-- Essentials -->
+        <script type="text/javascript" src="holokitessentials.js"></script>
+
+        <!-- Theme -->
+        <link href="styles/default.css" rel="stylesheet">
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <script type="text/javascript" charset="utf-8" src="cordova.js"></script>
+    </head>
+
+    <body>
+
+        <!-- Side panel -->
+        <div id="side-panel" hidden>
+            <!-- Search button -->
+            <i id="search" class="glyphicon glyphicon-search side-panel-button"></i>
+            <!-- Dashboard -->
+            <i id="dashboard" class="glyphicon glyphicon-th-large side-panel-button"></i>
+
+            <div style="height:30%;"> <!-- Spacing Purposes --> </div>
+
+            <!-- Live streams button -->
+            <i id="live-stream" class="side-panel-button" style="position:relative">
+                <img src="assets/hololive_logo.png" style="width:25px;height:35px;" />
+            </i>
+            <!-- Recent streams button -->
+            <i id="recent-stream" class="glyphicon glyphicon-time side-panel-button"></i>
+            <!-- Upcoming streams button -->
+            <i id="upcoming-stream" class="glyphicon glyphicon-calendar side-panel-button"></i>
+
+            <!-- Settings button -->
+            <i id="settings" class="glyphicon glyphicon-tasks side-panel-button"
+               style="position:absolute;left:calc(10% - 8px);top:calc(100% - 50px)"></i>
+        </div><br />
+
+        <!-- All content goes here -->
+        <div id="content">
+            <div id="search-bar-container" class="panel panel-default" style="border-radius: 20px 20px 10px 10px;" hidden>
+                <input type="text" class="form-control" id="search-bar" placeholder="Search streams..."><br/>
+                <div id="search-results" style="width:100%;height:400px;overflow:scroll;"></div>
+            </div>
+
+            <iframe src="dashboard.html" id="stream-contents" style="width:82%"></iframe>
+        </div>
+
+        <!-- Appears only on thumbnail click -->
+        <div id="stream-popup" hidden>
+            <img id="stream-popup-thumbnail" style="width:100%;" role="button" /><br/><br/>
+            <!-- Close button on top right -->
+            <i id="close-popup" class="glyphicon fa fa-times"
+               style="font-size:230%;position:absolute;left:90%;top:2%"></i>
+
+            <!-- Streamer info part -->
+            <div id="streamer" class="panel panel-default">
+                <img id="streamer-picture" />
+                <b id="streamer-name"></b>
+                <div>
+                    <img src="assets/youtube_logo.png" style="height:16px;float:left;margin: 1% 2% 0 0;" />
+                    <p id="streamer-subscribers"></p>
+                </div>
+            </div><br/>
+
+            <div class="panel panel-default" id="stream-info">
+                <p id="stream-title" align="center"></p>
+
+                <hr/>
+
+                <!-- Stream info part -->
+                <div id="stream-info-sub" style="display:flex;flex-direction:column;">
+                    <div id="stream-info-sub" style="display:flex;flex-direction:column;padding-left:10%;flex-grow:2;justify-content:center;">
+                        <section>
+                            <i class="glyphicon glyphicon-time" style="float:left;margin-right:2%;"></i>
+                            <p id="stream-schedule"></p>
+                        </section>
+                        <section id="viewer-container">
+                            <i id="viewer-icon" class="glyphicon glyphicon-eye-open" style="float:left;margin-right:2%;"></i>
+                            <p id="stream-viewers"></p>
+                        </section>
+                    </div>
+                </div>
+            </div><br/>
+        </div>
+
+        <script>
+            // Disallow screen rotations
+            window.addEventListener("orientationchange", function() {
+                screen.lockOrientation('portrait');
+            });
+
+            // Default settings
+            if(window.localStorage.getItem("theme") == null) {
+                window.localStorage.setItem("theme", "dodgerblue");
+            }
+
+            if(window.localStorage.getItem("api-interval") == null) {
+                window.localStorage.setItem("api-interval", 5);
+            }
+
+            if(window.localStorage.getItem("exclude-free-chat") == null) {
+                window.localStorage.setItem("exclude-free-chat", false);
+            }
+
+            if(window.localStorage.getItem("fade-panels") == null) {
+                window.localStorage.setItem("fade-panels", false);
+            }
+
+            function toIntId(string) {
+                var res = "";
+                for(var i = 0; i < string.length; i++) {
+                    res += string.charCodeAt(i)
+                }
+
+                return parseInt(res)
+            }
+
+            $(document).ready(function() {
+                // Setting the language
+                var language = window.localStorage.getItem("language");
+                language = (language == null ? "en" : language);
+                $.getJSON("lang/" + language + ".json", function(lang) {
+                    $("#search-bar").attr("placeholder", lang.search_stream)
+                    $("#bookmark").text(lang.bookmark);
+
+                    // Japanese and English time formatting
+                    function hourOrMinute(hour_arg) {
+                        var hour = Math.floor(hour_arg);
+                        var minute = Math.round(hour_arg * 60);
+                        switch(window.localStorage.getItem("language")) {
+                            case "en":
+                                return hour_arg >= 1 ?
+                                    hour + (hour == 1 ? " hour" : " hours")
+                                    : minute + (minute == 1 ? " minute" : " minutes");
+                                break;
+                            case "jp":
+                                return hour_arg >= 1 ? hour + "時" : minute + "分";
+                                break;
+                        }
+                    }
+
+                    // Stream popup function that will be called inside an iframe on stream popup click
+                    window.streamPopup = function(stream) {
+                        $("#stream-popup-thumbnail").attr("src", Holojazz.getThumbnail(stream.yt_video_key));
+                        $("#streamer-picture").attr("src", stream.channel.photo);
+                        $("#streamer-name").text(sanitize(stream.channel.name));
+                        $("#streamer-subscribers").text(stream.channel.subscriber_count);
+                        $("#stream-title").text(sanitize(Holojazz.getCleanTitle(stream.title)));
+
+                        // Replace all broken thumbnails
+                        var images = $('img')
+                        var thumbnailErrorHeight = 90;
+                        for(var i = 0; i < images.length; i++) {
+                            if(images[i].naturalHeight == thumbnailErrorHeight) {
+                                $(images[i]).attr("src", "assets/thumbnail_unavailable_" + window.localStorage.getItem("language") + ".png");
+                            }
+                        }
+
+                        if(stream.status == "live") {
+                            var hours = Math.abs(new Date(stream.live_start) - Date.now()) / 36e5;
+                            $("#stream-schedule").text(lang.live[0] + hourOrMinute(hours) + lang.live[1]);
+
+                        } else if(stream.status == "past") {
+                            var hours = Math.abs(new Date(stream.live_end) - Date.now()) / 36e5;
+                            $("#stream-schedule").text(lang.ended[0] + hourOrMinute(hours) + lang.ended[1]);
+                        } else {
+                            var hours = Math.abs(new Date(stream.live_schedule) - Date.now()) / 36e5;
+                            $("#stream-schedule").text(lang.upcoming[0] + hourOrMinute(hours) + lang.upcoming[1]);
+                        }
+
+                        // Stream viewer count might not show on Membership streams and Premieres
+                        if(stream.live_viewers != null) {
+                            $("#viewer-container").show();
+                            $("#stream-viewers").html(stream.live_viewers);
+                        } else {
+                            $("#viewer-container").hide();
+                        }
+
+                        $("#stream-popup #stream-popup-thumbnail").on("click", function() {
+                            window.location.href = Holojazz.getVideoUrl(stream.yt_video_key);
+                        });
+
+                        // Unbind click first so slideToggle does not trigger more than once
+                        $("#stream-popup #close-popup").unbind("click").on("click", function() {
+                            $("#stream-popup").slideToggle(200);
+                        });
+                    }
+                });
+
+                document.addEventListener("backbutton", onBackKeyDown, false);
+
+                // Show the side panel on document load
+                $("#side-panel").fadeIn(200);
+
+                Date.prototype.addMinutes = function(minutes) {
+                    this.setMinutes(this.getMinutes() + minutes);
+                    return this;
+                }
+
+                var hasLogged_chk = true;
+
+                if(Date.now() >= new Date(window.localStorage.getItem("dexApiReset"))) {
+                    window.localStorage.setItem("dexApiReset", new Date().addMinutes(30));
+                    window.localStorage.setItem("clipList", JSON.stringify(Holojazz.getClips()));
+                }
+
+                if(Date.now() >= new Date(window.localStorage.getItem("toolsApiReset"))) {
+                    window.localStorage.setItem("liveStreams", JSON.stringify(Holojazz.getStreams().live));
+                    window.localStorage.setItem("recentStreams", JSON.stringify(Holojazz.getStreams().ended));
+                    window.localStorage.setItem("upcomingStreams", JSON.stringify(Holojazz.getStreams().upcoming));
+                    window.localStorage.setItem("toolsApiReset", new Date().addMinutes(eval(window.localStorage.getItem("api-interval"))));
+                }
+
+                // Check connection to API
+                $.ajax({
+                    // Request api docs instead as the API
+                    // returns 404 with no supplied GET parameter
+                    url: Holojazz.api + "api-docs/",
+                    type: 'get',
+                    async: false,
+                    error: function() {
+                        // Do not treat first log in if API is unreachable at first log in
+                        hasLogged_chk = false;
+                        window.location.href = "unreachable.html";
+                    }
+                }); // Connection check
+
+                // Checks
+                if(window.localStorage.getItem("hasLoggedBefore") == null && hasLogged_chk) {
+                    window.localStorage.setItem("hasLoggedBefore", true);
+                    window.localStorage.setItem("language", "en");
+                    window.localStorage.setItem("dexApiReset", new Date().addMinutes(30));
+                    window.localStorage.setItem("toolsApiReset", new Date().addMinutes(eval(window.localStorage.getItem("api-interval"))));
+                    window.localStorage.setItem("clipList", JSON.stringify(Holojazz.getClips()));
+                    window.localStorage.setItem("liveStreams", JSON.stringify(Holojazz.getStreams().live));
+                    window.localStorage.setItem("recentStreams", JSON.stringify(Holojazz.getStreams().ended));
+                    window.localStorage.setItem("upcomingStreams", JSON.stringify(Holojazz.getStreams().upcoming));
+                    window.localStorage.setItem("notifyList", "[]");
+                    $("#stream-contents").attr("src", "first_time.html");
+                    setTimeout(function() {
+                        $("#stream-contents").contents().find("#loading").remove();
+                    }, 3000); // Remove after 3 seconds the popup that notifies the user to wait for awhile
+                    // Fine... it doesn't really load anything does it?
+                }
+
+                // Preferences
+                $("#side-panel").css("background-color", window.localStorage.getItem("theme"));
+                $("#side-panel").css("box-shadow", `0 0 10px ${window.localStorage.getItem("theme")}`);
+                $("#search-bar").css("border", `1px ${window.localStorage.getItem("theme")} solid`);
+
+                // Choose what to do if back button is clicked
+                function onBackKeyDown(e) {
+                    if(!$("#stream-popup").is(":hidden")) {
+                        $("#stream-popup").slideToggle(200);
+                    } else if(!$("#search-bar-container").is(":hidden")) {
+                        $("#search-bar-container").fadeToggle(200);
+                    } else if($("#stream-contents").attr("src") != "dashboard.html") {
+                        $("#stream-contents").attr("src", "dashboard.html");
+                    } else {
+                        navigator.app.exitApp();
+                    }
+                }
+
+                // Side panel button click jump animation
+                $(".side-panel-button").click(function() {
+                    $(this).animate({
+                        top: "-=10px"
+                    }, 200);
+                    $(this).animate({
+                        top: "+=10px"
+                    }, 200);
+                });
+
+                // Display an iframe instead of hard coding it in this html file
+                // So we are more organized
+                $("#search").click(function() {
+                    $("#search-bar-container").fadeToggle(200);
+                });
+
+                // Check for changes in search bar
+                $("#search-bar").change(function() {
+                    var query = $(this).val();
+                    document.getElementById("search-results").innerHTML = "";
+                    for(let result of Holojazz.getVideoByTitle(query).videos) {
+                        // Add clickable tab for each result
+                        $("#search-results").append(createResultTab(result));
+                    }
+                });
+
+                // Side panel
+                $("#dashboard").click(function() {
+                    $("#stream-contents").attr("src", "dashboard.html")
+                });
+
+                $("#live-stream").click(function() {
+                    $("#stream-contents").attr("src", "livestreams.html")
+                });
+
+                $("#recent-stream").click(function() {
+                    $("#stream-contents").attr("src", "recentstreams.html")
+                });
+
+                $("#upcoming-stream").click(function() {
+                    $("#stream-contents").attr("src", "upcomingstreams.html")
+                });
+
+                $("#settings").click(function() {
+                    window.location.href = "settings.html"
+                });
+            }); // JQuery Ready
+        </script>
+
+        <style>
+            html, body {
+                height: 100%;
+            }
+
+            /* Everything in the body except the side panel */
+            #content {
+                /* Padding on the left side to
+                   prevent overlapping with
+                   fixed side panel */
+                padding: 0% 10% 0% 15%;
+                margin: 2%;
+            }
+
+            #side-panel {
+                margin-left: 0%;
+                width: 15%;
+                height: 100%;
+                position: fixed;
+                background-color: dodgerblue;
+                border-radius: 0px 8px 8px 0px;
+                text-align: center;
+                padding: 10px;
+                box-shadow: 0 0 10px dodgerblue;
+            }
+
+            .side-panel-button {
+                right: 5%;
+                font-size: 200%;
+                color: white;
+                margin: 20%;
+            }
+
+            /* Search bar that is hidden by default */
+            #search-bar-container {
+                width: 81%;
+                top: 1%;
+                padding: 5px;
+                position: fixed;
+                z-index: 1;
+            }
+
+            #search-bar {
+                width: 100%;
+                border-radius: 15px;
+                border: 1px dodgerblue solid;
+                padding: 5px 5px 5px 25px;
+                position: absolute;
+                top: 0;
+                left: 0;
+            }
+
+            /* IFrame containing the streams */
+            #stream-contents {
+                border: none;
+                height: 98%;
+                position: fixed;
+                top: 0%;
+            }
+
+            /* Stream pop-up */
+            #stream-popup {
+                background-color: white;
+                width: 100%;
+                position: absolute;
+                bottom: 0%;
+                padding: 0;
+                z-index: 2;
+            }
+
+            #stream-popup #streamer {
+                margin: auto;
+                width: 90%;
+                height: 15%;
+                padding: 3%;
+                line-height: 180%;
+            }
+
+            #stream-popup #streamer-picture {
+                border-radius: 50%;
+                height: 50px;
+                float: left;
+                margin-right: 5%;
+            }
+
+            #stream-popup #stream-info {
+                margin: auto;
+                width: 90%;
+                padding: 3%;
+            }
+        </style>
+    </body>
+</html>

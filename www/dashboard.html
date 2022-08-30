@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- Bootstrap -->
+        <link rel="stylesheet" href="lib/bootstrap5.0.2.css">
+        <script src="lib/bootstrap5.0.2.js"></script>
+
+        <!-- JQuery -->
+        <script src="lib/jquery3.6.0.css"></script>
+
+        <!-- Viewport -->
+        <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+
+        <!-- Holojazz -->
+        <script type="text/javascript" src="holojazz.js"></script>
+
+        <!-- Essentials -->
+        <script type="text/javascript" src="holokitessentials.js"></script>
+
+        <!-- Theme -->
+        <link href="styles/default.css" rel="stylesheet">
+
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    </head>
+
+    <bo>
+        <h6 id="hot_streams"></h6>
+        <div id="panel" class="card">
+            <div class="carousel slide" data-bs-ride="carousel">
+                <div id="popularStreams" class="carousel-inner">
+                </div>
+            </div>
+        </div>
+        <hr/>
+        <h6 id="clips"></h6>
+        <div id="panel" class="card">
+            <div class="carousel slide" data-bs-ride="carousel">
+                <div id="clip-list" class="carousel-inner">
+                </div>
+            </div>
+        </div>
+        <hr/>
+        <h6 id="japan_time"></h6>
+        <div class="col-md-3">
+            <div class="card bg-dark text-white">
+                <h3 class="card-title text-center">
+                    <div class="d-flex flex-wrap justify-content-center mt-2">
+                        <a><span class="badge hours"></span></a> :
+                        <a><span class="badge min"></span></a> :
+                        <a><span class="badge sec"></span></a>
+                    </div>
+                </h3>
+            </div>
+        </div>
+
+        <script>
+            $(function() {
+                var language = window.localStorage.getItem("language");
+                language = (language == undefined ? "en" : language);
+                $.getJSON("lang/" + language + ".json", function(lang) {
+                    $("#hot_streams").text(lang.hot_streams);
+                    $("#clips").text(lang.clips);
+                    $("#subscriber_rankings").text(lang.subscriber_rankings);
+                    $("#japan_time").text(lang.japan_time);
+                });
+
+                // Replace all broken thumbnails
+                var images = $('img')
+                var thumbnailErrorHeight = 90;
+                for(var i = 0; i < images.length; i++) {
+                    if(images[i].naturalHeight == thumbnailErrorHeight) {
+                        $(images[i]).attr("src", "assets/thumbnail_unavailable_" + window.localStorage.getItem("language") + ".png");
+                    }
+                }
+            });
+
+            var counter = 0;
+
+            var streamList = JSON.parse(window.localStorage.getItem("liveStreams"));
+
+            if(streamList.length != 0) {
+                var viewerLenProp = streamList.map(function(stream) {
+                    var hours = new Date(stream.live_schedule) / 36e5;
+                    return stream.live_viewers / hours;
+                });
+
+                var vlpAvg = viewerLenProp.reduce(function(acc, item) {
+                    return acc + item;
+                }) / viewerLenProp.length;
+
+                var active;
+                for(let streams of streamList) {
+                    if(viewerLenProp[counter] >= vlpAvg) {
+                        active = "";
+                        if($.trim($("#popularStreams").html()) == '') {
+                            active = "active";
+                        }
+
+                        $("#popularStreams").append(`
+                            <div class="carousel-item ${active}">` +
+                                createStreamPanel(streams) +
+                            "</div>");
+                    }
+
+                    counter++;
+                }
+            } else {
+                // TODO show message when live streams empty
+            }
+
+            var hololive = /holo(live)?/i;
+            counter = 0;
+            active = "";
+            for(let clips of JSON.parse(window.localStorage.getItem("clipList"))) {
+                if(hololive.test(clips.title)) {
+                    active = "";
+                    if(counter == 0) {
+                        active = "active";
+                    }
+
+                    $("#clip-list").append(`
+                        <div class="carousel-item ${active}">
+                            <img src="${Holojazz.getThumbnail(clips.id)}" class="d-block w-100" role="button"
+                                        onClick="window.top.location.href = '${Holojazz.getVideoUrl(clips.id)}'"><br/>
+                            <h6>${sanitize(clips.channel.name)}</h6>
+                            <p>${sanitize(Holojazz.getCleanTitle(clips.title))}</p>
+                        </div>
+                    `);
+
+                    counter++;
+                }
+            }
+
+            // Timer thingy
+            $(document).ready(function() {
+                setInterval( function() {
+                    var hours = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Tokyo"})).getHours();
+                    $(".hours").html(( hours < 10 ? "0" : "" ) + hours);
+                }, 1000);
+
+                setInterval( function() {
+                    var minutes = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Tokyo"})).getMinutes();
+                    $(".min").html(( minutes < 10 ? "0" : "" ) + minutes);
+                }, 1000);
+
+                setInterval( function() {
+                    var seconds = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Tokyo"})).getSeconds();
+                    $(".sec").html(( seconds < 10 ? "0" : "" ) + seconds);
+                }, 1000);
+
+                $('img').on("error", function() {
+                    $(this).attr('src', 'assets/loading.gif');
+                });
+
+            });
+
+            function streamPopup(stream) {
+                $("#stream-popup", parent.document).slideToggle(200);
+
+                // Decode and parse the object and send it to index.html
+                window.parent.streamPopup(JSON.parse(decodeURIComponent(stream)));
+            }
+        </script>
+
+        <style>
+            body {
+                height: 100%;
+                margin: 3%;
+            }
+
+            p {
+                text-align: center;
+                font-size: 12px;
+                padding: 2%;
+            }
+
+            h6 {
+                text-align: center;
+                padding: 2%;
+            }
+        </style>
+    </body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+        <!-- JQuery -->
+        <script src="lib/jquery3.6.0.css"></script>
+
+        <!-- Viewport -->
+        <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+
+        <!-- Theme -->
+        <link href="styles/default.css" rel="stylesheet">
+
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    </head>
+
+    <body style="background-color: hsl(214, 100%, 74%);margin-top:40%">
+        <div style="position:relative;top:50%;left:25%">
+            <img src="assets/gura_socketmiss.gif" style="width:50%;" />
+        </div>
+
+        <div style="text-align:center;">
+            <p id="cannot_connect_api" align="center"></p>
+        </div>
+
+        <script>
+            var language = window.localStorage.getItem("language");
+            language = (language == null ? "en" : language);
+            $.getJSON("lang/" + language + ".json", function(lang) {
+                $("#cannot_connect_api").html(lang.cannot_connect_api);
+            });
+        </script>
+    </body>
+</html>

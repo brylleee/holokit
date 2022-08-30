@@ -1,0 +1,48 @@
+<html>
+    <head>
+        <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+        <script src="lib/jquery3.6.0.css"></script>
+
+        <!-- Viewport -->
+        <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+
+        <!-- Theme -->
+        <link href="styles/default.css" rel="stylesheet">
+
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    </head>
+
+    <body>
+        <div style="padding:5px">
+            <h1 style="color:rgb(84, 228, 253);">HoloKit v1.0.0</h1>
+            <p id="welcome_holokit"></p>
+            <hr/>
+        </div>
+        <div class="panel panel-info" style="padding:15px;margin:auto;width:90%">
+            <p id="welcome_holokit_sub"></p>
+        </div>
+
+        <div style="position:fixed;top:50%;left:10%">
+            <img src="assets/gura_walking.gif" style="width:80%;" />
+        </div><br/>
+
+        <!-- Loading popup -->
+        <div id="loading" class="alert alert-info alert-dismissible fade in" style="margin:auto;width:80%">
+            <div>
+                <img src="assets/loading.gif" style="width:10%;float:left;margin-right:3%" />
+                <p id="asset_load"></p>
+            </div>
+        </div>
+
+        <script>
+            var language = window.localStorage.getItem("language");
+            language = (language == null ? "en" : language);
+            $.getJSON("lang/" + language + ".json", function(lang) {
+                $("#welcome_holokit").html(lang.welcome_holokit);
+                $("#welcome_holokit_sub").html(lang.welcome_holokit_sub);
+                $("#asset_load").html(lang.asset_load);
+            });
+        </script>
+    </body>
+</html>
